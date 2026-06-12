@@ -235,11 +235,21 @@ def sqs_manager(sqs_client):
 
 
 @pytest.fixture()
-def create_test_bucket(metadata: dict):
+def test_configuration() -> dict:
+    """Fallback for tests that do not parametrize test_configuration (e.g. multiple-calls tests).
+    Parametrize overrides this fixture, so tests that do supply test_configuration still work.
+    """
+    return {}
+
+
+@pytest.fixture()
+def create_test_bucket(metadata: dict, test_configuration: dict):
     """Use a pre-existing S3 bucket for tests.
 
     Args:
         metadata (dict): Bucket information.
+        test_configuration (dict): Wazuh configuration template built at import time.
+            Patched in-place so set_wazuh_configuration writes the shared bucket into ossec.conf.
     """
     shared_bucket = os.environ.get('AWS_BUCKET_NAME')
     if not shared_bucket:
@@ -249,6 +259,17 @@ def create_test_bucket(metadata: dict):
         )
     # Override metadata so all dependent fixtures and the Wazuh module CLI use the shared bucket.
     metadata['bucket_name'] = shared_bucket
+
+    # Patch test_configuration so set_wazuh_configuration writes the shared bucket into ossec.conf.
+    # Without this, ossec.conf keeps the YAML name (plus the session suffix added by _modify_metadata),
+    # causing a mismatch with metadata['bucket_name'] and triggering incorrect_parameters failures.
+    for section in test_configuration.get('sections', []):
+        for element in section.get('elements', []):
+            bucket_cfg = element.get('bucket')
+            if isinstance(bucket_cfg, dict):
+                for bucket_elem in bucket_cfg.get('elements', []):
+                    if 'name' in bucket_elem:
+                        bucket_elem['name']['value'] = shared_bucket
 
 
 @pytest.fixture
@@ -368,6 +389,18 @@ def manage_bucket_files(metadata: dict, s3_client, ec2_client):
                     delete_bucket_file(filename=key, bucket_name=bucket_name, client=s3_client)
                 except ClientError:
                     pass  # File may already be gone (remove_from_bucket tests delete it themselves)
+                except Exception:
+                    pass
+
+            # Delete any extra key uploaded during the test body (e.g. metadata['filename'] in
+            # test_bucket_multiple_calls). Without this, stale keys remain in the shared bucket
+            # and cause the next run to process old files instead of "No logs to process".
+            extra_key = metadata.get('filename')
+            if extra_key and extra_key not in uploaded_keys:
+                try:
+                    delete_bucket_file(filename=extra_key, bucket_name=bucket_name, client=s3_client)
+                except ClientError:
+                    pass
                 except Exception:
                     pass
 
