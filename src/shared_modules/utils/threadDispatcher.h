@@ -21,6 +21,7 @@
 #include "threadSafeQueue.h"
 #include "promiseFactory.h"
 #include "commonDefs.h"
+#include "proc.hpp"
 
 namespace Utils
 {
@@ -69,7 +70,7 @@ namespace Utils
     class AsyncDispatcher
     {
         public:
-            AsyncDispatcher(Functor functor, const unsigned int numberOfThreads = std::thread::hardware_concurrency(), const size_t maxQueueSize = UNLIMITED_QUEUE_SIZE)
+            AsyncDispatcher(Functor functor, const unsigned int numberOfThreads = cpp_get_nproc(), const size_t maxQueueSize = UNLIMITED_QUEUE_SIZE)
                 : m_functor{ functor }
                 , m_running{ true }
                 , m_numberOfThreads{ numberOfThreads ? numberOfThreads : 1 }
