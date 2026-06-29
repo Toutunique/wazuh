@@ -11,6 +11,20 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
+
+#define SYNC_FAILURE_REASON_MAX_LEN 2048
+
+/// @brief Result of a module synchronization operation.
+///
+/// Returned by sync entry points to report both outcome and failure detail.
+/// @var success        true if synchronization completed successfully; false otherwise.
+/// @var failure_reason Human-readable reason string when available; may be empty if no specific reason was recorded.
+typedef struct SyncModuleResult_t
+{
+    bool success;
+    char failure_reason[SYNC_FAILURE_REASON_MAX_LEN];
+} SyncModuleResult_t;
 
 #include "logging_helper.h"
 

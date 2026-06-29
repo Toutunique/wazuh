@@ -20,7 +20,7 @@ class MockAgentSyncProtocol : public IAgentSyncProtocol
                     (const std::string& id, Operation operation, const std::string& index, const std::string& data, uint64_t version),
                     (override));
 
-        MOCK_METHOD(bool, synchronizeModule, (Mode mode, Option option), (override));
+        MOCK_METHOD(SyncModuleResult, synchronizeModule, (Mode mode, Option option), (override));
 
         MOCK_METHOD(bool, requiresFullSync, (const std::string& index, const std::string& checksum), (override));
 

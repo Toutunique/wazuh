@@ -56,7 +56,7 @@ class AgentSyncProtocol : public IAgentSyncProtocol
                                        uint64_t version) override;
 
         /// @copydoc IAgentSyncProtocol::synchronizeModule
-        bool synchronizeModule(Mode mode, Option option = Option::SYNC) override;
+        SyncModuleResult synchronizeModule(Mode mode, Option option = Option::SYNC) override;
 
         /// @copydoc IAgentSyncProtocol::requiresFullSync
         bool requiresFullSync(const std::string& index,

@@ -49,8 +49,8 @@ class IAgentSyncProtocol
         /// @brief Synchronize a module with the server
         /// @param mode Sync mode
         /// @param option Synchronization option.
-        /// @return true if the sync was successfully processed; false otherwise.
-        virtual bool synchronizeModule(Mode mode, Option option = Option::SYNC) = 0;
+        /// @return SyncModuleResult with success flag and an optional failure reason string.
+        virtual SyncModuleResult synchronizeModule(Mode mode, Option option = Option::SYNC) = 0;
 
         /// @brief Checks if a module index requires full synchronization
         /// @param index The index/table to check
