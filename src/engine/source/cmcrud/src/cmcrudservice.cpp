@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <base/logging.hpp>
+#include <base/utils/stringUtils.hpp>
 #include <cmstore/detail.hpp>
 #include <cmstore/types.hpp>
 
@@ -54,17 +55,7 @@ cm::store::dataType::KVDB kvdbFromDocument(const json::Json& kvdbDocument, bool 
     return cm::store::dataType::KVDB::fromJson(kvdbDocument, requireUUID);
 }
 
-std::string resourceNameStringFromJson(const json::Json& jsonDoc)
-{
-    std::string name;
-    if (jsonDoc.getString(name, "/name") != json::RetGet::Success || name.empty())
-    {
-        throw std::runtime_error("Missing or empty asset name at JSON path '/name'");
-    }
-    return name;
-}
-
-bool isValidResourceNameComponent(std::string_view component)
+bool hasValidResourceNameCharacters(std::string_view component)
 {
     return !component.empty()
            && std::all_of(component.begin(),
@@ -78,39 +69,29 @@ bool isValidResourceNameComponent(std::string_view component)
 
 void validateSimpleResourceName(std::string_view name, cm::store::ResourceType type)
 {
-    if (!isValidResourceNameComponent(name))
+    if (!hasValidResourceNameCharacters(name))
     {
         throw std::runtime_error(
             fmt::format("Invalid resource name: '{}' for resource '{}'", name, cm::store::resourceTypeToString(type)));
     }
 }
 
-void validateAssetResourceName(std::string_view name, cm::store::ResourceType type)
-{
-    std::size_t start = 0;
-    while (true)
-    {
-        const auto end = name.find('/', start);
-        const auto part = name.substr(start, end == std::string_view::npos ? std::string_view::npos : end - start);
-
-        if (!isValidResourceNameComponent(part))
-        {
-            throw std::runtime_error(fmt::format(
-                "Invalid resource name: '{}' for resource '{}'", name, cm::store::resourceTypeToString(type)));
-        }
-
-        if (end == std::string_view::npos)
-        {
-            break;
-        }
-        start = end + 1;
-    }
-}
-
 base::Name validatedAssetNameFromJson(const json::Json& jsonDoc, cm::store::ResourceType type)
 {
-    const auto name = resourceNameStringFromJson(jsonDoc);
-    validateAssetResourceName(name, type);
+    std::string name;
+    if (jsonDoc.getString(name, "/name") != json::RetGet::Success || name.empty())
+    {
+        throw std::runtime_error("Missing or empty asset name at JSON path '/name'");
+    }
+
+    const auto parts = base::utils::string::split(name, '/');
+    if (name.front() == '/' || name.back() == '/'
+        || !std::all_of(parts.begin(), parts.end(), hasValidResourceNameCharacters))
+    {
+        throw std::runtime_error(
+            fmt::format("Invalid resource name: '{}' for resource '{}'", name, cm::store::resourceTypeToString(type)));
+    }
+
     return base::Name {name};
 }
 
