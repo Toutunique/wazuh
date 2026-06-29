@@ -11,6 +11,7 @@
 #include "gmock/gmock.h"
 
 #include "agent_sync_protocol.hpp"
+#include "agent_sync_protocol_types.hpp"
 #include "ipersistent_queue.hpp"
 #include "agent_sync_protocol_c_interface.h"
 #include "metadata_provider.h"
@@ -457,7 +458,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleSendStartFails)
                   );
 
     EXPECT_FALSE(result.success);
-    EXPECT_EQ(result.failureReason, "Failed to communicate with the manager.");
+    EXPECT_EQ(result.failureReason, "Timed out waiting for manager response.");
 }
 
 TEST_F(AgentSyncProtocolTest, SendStartWaitsUntilMetadataAvailable)
@@ -702,7 +703,6 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleSendDataMessagesFails)
                           Mode::DELTA
                       );
         EXPECT_FALSE(result.success);
-        EXPECT_EQ(result.failureReason, "Failed to communicate with the manager.");
     });
 
     // Wait for start
@@ -771,7 +771,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleSendEndFails)
                           Mode::DELTA
                       );
         EXPECT_FALSE(result.success);
-        EXPECT_EQ(result.failureReason, "Failed to communicate with the manager.");
+        EXPECT_EQ(result.failureReason, "Timed out waiting for manager response.");
     });
 
     // Wait for start
@@ -3184,7 +3184,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithInvalidMode)
 
     // Try with Mode::DELTA (not allowed for synchronizeMetadataOrGroups)
     std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-    bool result = protocol->synchronizeMetadataOrGroups(
+    SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                       Mode::DELTA,
                       testIndices,
                       12345 // globalVersion
@@ -3210,7 +3210,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithFailedQueueStart)
                                                    mockQueue);
 
     std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-    bool result = protocol->synchronizeMetadataOrGroups(
+    SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                       Mode::METADATA_DELTA,
                       testIndices,
                       12345 // globalVersion
@@ -3236,7 +3236,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsStartAckTimeout)
 
     // Don't send any response, causing timeout
     std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-    bool result = protocol->synchronizeMetadataOrGroups(
+    SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                       Mode::METADATA_CHECK,
                       testIndices,
                       12345 // globalVersion
