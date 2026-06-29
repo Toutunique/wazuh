@@ -2706,7 +2706,7 @@ Edit the file and restart the `wazuh-manager` service for changes to take effect
 
 | Setting | Description | Default |
 |:--------|:------------|:-------:|
-| `analysisd.indexer_queue_max_events` | Maximum number of events waiting in the indexer output queue. Events can be dropped when this queue is full. | `131072` |
+| `analysisd.indexer_queue_max_bytes` | Maximum number of bytes of events waiting in the indexer output queue. Events can be dropped when this queue is full. | `128MB` |
 
 ### Synchronization settings
 

@@ -31,7 +31,7 @@ constexpr std::string_view INDEXER_PASSWORD = "analysisd.indexer_password";
 constexpr std::string_view INDEXER_SSL_CA_BUNDLE = "analysisd.indexer_ssl_certificate_authorities";
 constexpr std::string_view INDEXER_SSL_CERTIFICATE = "analysisd.indexer_ssl_certificate";
 constexpr std::string_view INDEXER_SSL_KEY = "analysisd.indexer_ssl_key";
-constexpr std::string_view INDEXER_QUEUE_MAX_EVENTS = "analysisd.indexer_queue_max_events";
+constexpr std::string_view INDEXER_QUEUE_MAX_BYTES = "analysisd.indexer_queue_max_bytes";
 
 constexpr std::string_view IOC_INDEXER_CONNECTOR_MAX_RETRIES = "analysisd.ioc_indexer_connector_max_retries";
 constexpr std::string_view IOC_INDEXER_CONNECTOR_RETRY_INTERVAL = "analysisd.ioc_indexer_connector_retry_interval";
