@@ -211,6 +211,14 @@ void Orchestrator::postEvent(IngestEvent&& event)
 
     const bool isContended = totalSlots > 0 && (queueSize * 100) >= (totalSlots * CONTENTION_LOAD_PERCENT_THRESHOLD);
 
+    if (!pushed)
+    {
+        if (m_droppedInputCounter)
+        {
+            m_droppedInputCounter->add(1);
+        }
+    }
+
     if (!isContended)
     {
         if (m_eventQueueContended.exchange(false, std::memory_order_relaxed))
@@ -225,10 +233,6 @@ void Orchestrator::postEvent(IngestEvent&& event)
     if (!pushed)
     {
         m_droppedEventsInContention.fetch_add(1, std::memory_order_relaxed);
-        if (m_droppedInputCounter)
-        {
-            m_droppedInputCounter->add(1);
-        }
     }
 
     bool expected = false;
