@@ -203,6 +203,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleNoQueueAvailable)
                   );
 
     EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.failureReason, "Transport not connected");
 }
 
 TEST_F(AgentSyncProtocolTest, SynchronizeModuleFetchAndMarkForSyncThrowsException)
@@ -386,6 +387,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleFullModeFailureKeepsInMemoryData)
                   );
 
     EXPECT_FALSE(result.success);  // Should fail due to timeout
+    EXPECT_EQ(result.failureReason, "Timed out waiting for manager response.");
 
     // In-memory data should be kept for potential retry, so we can add more data
     EXPECT_NO_THROW(protocol->persistDifferenceInMemory("memory_id_2", Operation::MODIFY, "memory_index_2", "memory_data_2", 2));
@@ -455,6 +457,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleSendStartFails)
                   );
 
     EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.failureReason, "Failed to communicate with the manager.");
 }
 
 TEST_F(AgentSyncProtocolTest, SendStartWaitsUntilMetadataAvailable)
@@ -699,6 +702,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleSendDataMessagesFails)
                           Mode::DELTA
                       );
         EXPECT_FALSE(result.success);
+        EXPECT_EQ(result.failureReason, "Failed to communicate with the manager.");
     });
 
     // Wait for start
@@ -767,6 +771,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeModuleSendEndFails)
                           Mode::DELTA
                       );
         EXPECT_FALSE(result.success);
+        EXPECT_EQ(result.failureReason, "Failed to communicate with the manager.");
     });
 
     // Wait for start
@@ -2838,6 +2843,7 @@ TEST_F(AgentSyncProtocolTest, ClearInMemoryDataAfterFailedFullSync)
                   );
 
     EXPECT_FALSE(result.success);  // Should fail due to timeout
+    EXPECT_EQ(result.failureReason, "Timed out waiting for manager response.");
 
     // Clear in-memory data after failed sync
     EXPECT_NO_THROW(protocol->clearInMemoryData());
@@ -2900,12 +2906,12 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithMetadataDeltaMode)
     std::thread syncThread([this]()
     {
         std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-        bool result = protocol->synchronizeMetadataOrGroups(
+        SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                           Mode::METADATA_DELTA,
                           testIndices,
                           12345 // globalVersion
                       );
-        EXPECT_TRUE(result);
+        EXPECT_TRUE(result.success);
     });
 
     // Wait for start message
@@ -2971,12 +2977,12 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithMetadataCheckMode)
     std::thread syncThread([this]()
     {
         std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-        bool result = protocol->synchronizeMetadataOrGroups(
+        SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                           Mode::METADATA_CHECK,
                           testIndices,
                           12345 // globalVersion
                       );
-        EXPECT_TRUE(result);
+        EXPECT_TRUE(result.success);
     });
 
     // Wait for start message
@@ -3042,12 +3048,12 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithGroupDeltaMode)
     std::thread syncThread([this]()
     {
         std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-        bool result = protocol->synchronizeMetadataOrGroups(
+        SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                           Mode::GROUP_DELTA,
                           testIndices,
                           12345 // globalVersion
                       );
-        EXPECT_TRUE(result);
+        EXPECT_TRUE(result.success);
     });
 
     // Wait for start message
@@ -3113,12 +3119,12 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithGroupCheckMode)
     std::thread syncThread([this]()
     {
         std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-        bool result = protocol->synchronizeMetadataOrGroups(
+        SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                           Mode::GROUP_CHECK,
                           testIndices,
                           12345 // globalVersion
                       );
-        EXPECT_TRUE(result);
+        EXPECT_TRUE(result.success);
     });
 
     // Wait for start message
@@ -3184,7 +3190,7 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithInvalidMode)
                       12345 // globalVersion
                   );
 
-    EXPECT_FALSE(result);
+    EXPECT_FALSE(result.success);
 }
 
 TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithFailedQueueStart)
@@ -3210,7 +3216,8 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithFailedQueueStart)
                       12345 // globalVersion
                   );
 
-    EXPECT_FALSE(result);
+    EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.failureReason, "Transport not connected");
 }
 
 TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsStartAckTimeout)
@@ -3235,7 +3242,8 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsStartAckTimeout)
                       12345 // globalVersion
                   );
 
-    EXPECT_FALSE(result);
+    EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.failureReason, "Timed out waiting for manager response.");
 }
 
 TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsEndAckTimeout)
@@ -3256,12 +3264,13 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsEndAckTimeout)
     std::thread syncThread([this]()
     {
         std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-        bool result = protocol->synchronizeMetadataOrGroups(
+        SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                           Mode::GROUP_DELTA,
                           testIndices,
                           12345 // globalVersion
                       );
-        EXPECT_FALSE(result);
+        EXPECT_FALSE(result.success);
+        EXPECT_EQ(result.failureReason, "Timed out waiting for manager response.");
     });
 
     // Wait for start message
@@ -3306,12 +3315,13 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithStartAckError)
     std::thread syncThread([this]()
     {
         std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-        bool result = protocol->synchronizeMetadataOrGroups(
+        SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                           Mode::METADATA_DELTA,
                           testIndices,
                           12345 // globalVersion
                       );
-        EXPECT_FALSE(result);
+        EXPECT_FALSE(result.success);
+        EXPECT_EQ(result.failureReason, "Manager sent an unexpected or invalid response.");
     });
 
     // Wait for start message
@@ -3354,12 +3364,12 @@ TEST_F(AgentSyncProtocolTest, SynchronizeMetadataOrGroupsWithEndAckError)
     std::thread syncThread([this]()
     {
         std::vector<std::string> testIndices = {"test-index-1", "test-index-2"};
-        bool result = protocol->synchronizeMetadataOrGroups(
+        SyncModuleResult result = protocol->synchronizeMetadataOrGroups(
                           Mode::GROUP_CHECK,
                           testIndices,
                           12345 // globalVersion
                       );
-        EXPECT_FALSE(result);
+        EXPECT_FALSE(result.success);
     });
 
     // Wait for start message

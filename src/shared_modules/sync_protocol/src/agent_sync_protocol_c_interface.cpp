@@ -225,7 +225,7 @@ extern "C" {
 
             return wrapper->impl->synchronizeMetadataOrGroups(static_cast<Mode>(mode),
                                                               indices_vec,
-                                                              global_version);
+                                                              global_version).success;
         }
         catch (const std::exception& ex)
         {

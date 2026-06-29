@@ -72,7 +72,7 @@ class IAgentSyncProtocol
         /// @param indices Vector of index names that will be updated by the manager
         /// @param globalVersion Global version to include in the Start message (optional, only for Delta modes)
         /// @return true if synchronization completed successfully, false otherwise
-        virtual bool synchronizeMetadataOrGroups(Mode mode, const std::vector<std::string>& indices, uint64_t globalVersion = 0) = 0;
+        virtual SyncModuleResult synchronizeMetadataOrGroups(Mode mode, const std::vector<std::string>& indices, uint64_t globalVersion = 0) = 0;
 
         /// @brief Notifies the manager about data cleaning for specified indices.
         ///

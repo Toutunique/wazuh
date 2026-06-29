@@ -21,6 +21,41 @@
 #include <set>
 #include <unistd.h>
 
+// Various functions that are called by synchronizeModule write their sync result to lastSyncResult
+// We use that to generate a failureReason message which will be reported as a warning by each module (FIM, SCA, Syscollector, AgentInfo).
+static std::string determineFailureReasonBasedOnSyncResult(SyncResult result)
+{
+    std::string failureReason;
+
+    switch (result)
+    {
+        case SyncResult::COMMUNICATION_ERROR:
+            failureReason = "Failed to communicate with the manager.";
+            break;
+
+        case SyncResult::CHECKSUM_ERROR:
+            failureReason = "Checksum mismatch detected by manager, full resync will be triggered.";
+            break;
+
+        case SyncResult::TIMEOUT_ERROR:
+            failureReason = "Timed out waiting for manager response.";
+            break;
+
+        case SyncResult::PROTOCOL_ERROR:
+            failureReason = "Manager sent an unexpected or invalid response.";
+            break;
+
+        case SyncResult::NO_GROUPS_ERROR:
+            failureReason = "No groups available in metadata. Waiting for the server to synchronize the groups. Cannot proceed with synchronization.";
+            break;
+
+        default:
+            break;
+    }
+
+    return failureReason;
+}
+
 AgentSyncProtocol::AgentSyncProtocol(const std::string& moduleName, std::optional<std::string> dbPath, MQ_Functions mqFuncs, LoggerFunc logger, std::chrono::seconds syncEndDelay,
                                      std::chrono::seconds timeout,
                                      unsigned int retries, size_t maxEps, std::shared_ptr<IPersistentQueue> queue)
@@ -241,8 +276,6 @@ SyncModuleResult AgentSyncProtocol::synchronizeModule(Mode mode, Option option)
         }
     }
 
-    std::string failureReason;
-
     try
     {
         if (success)
@@ -272,34 +305,6 @@ SyncModuleResult AgentSyncProtocol::synchronizeModule(Mode mode, Option option)
                 // No need to check m_persistentQueue for nullptr here as it was validated earlier
                 m_persistentQueue->resetSyncingItems();
             }
-
-            // Various functions that are called by synchronizeModule write their sync result to lastSyncResult
-            // We use that to generate a failureReason message which will be reported as a warning by each module (FIM, SCA, Syscollector, AgentInfo).
-            switch (m_syncState.lastSyncResult)
-            {
-                case SyncResult::COMMUNICATION_ERROR:
-                    failureReason = "Failed to communicate with the manager.";
-                    break;
-
-                case SyncResult::CHECKSUM_ERROR:
-                    failureReason = "Checksum mismatch detected by manager, full resync will be triggered.";
-                    break;
-
-                case SyncResult::TIMEOUT_ERROR:
-                    failureReason = "Timed out waiting for manager response.";
-                    break;
-
-                case SyncResult::PROTOCOL_ERROR:
-                    failureReason = "Manager sent an unexpected or invalid response.";
-                    break;
-
-                case SyncResult::NO_GROUPS_ERROR:
-                    failureReason = "No groups available in metadata. Waiting for the server to synchronize the groups. Cannot proceed with synchronization.";
-                    break;
-
-                default:
-                    break;
-            }
         }
     }
     catch (const std::exception& e)
@@ -307,6 +312,7 @@ SyncModuleResult AgentSyncProtocol::synchronizeModule(Mode mode, Option option)
         m_logger(LOG_ERROR, std::string("Failed to finalize sync state: ") + e.what());
     }
 
+    std::string failureReason = determineFailureReasonBasedOnSyncResult(m_syncState.lastSyncResult);
     clearSyncState();
     return {success, failureReason};
 }
@@ -373,21 +379,21 @@ void AgentSyncProtocol::clearInMemoryData()
     m_inMemoryData.clear();
 }
 
-bool AgentSyncProtocol::synchronizeMetadataOrGroups(Mode mode,
-                                                    const std::vector<std::string>& indices,
-                                                    uint64_t globalVersion)
+SyncModuleResult AgentSyncProtocol::synchronizeMetadataOrGroups(Mode mode,
+                                                                const std::vector<std::string>& indices,
+                                                                uint64_t globalVersion)
 {
     // Validate synchronization mode - only allow metadata and group modes
     if (mode != Mode::METADATA_DELTA && mode != Mode::METADATA_CHECK &&
             mode != Mode::GROUP_DELTA && mode != Mode::GROUP_CHECK)
     {
         m_logger(LOG_ERROR, "Invalid synchronization mode for metadata/groups: " + std::to_string(static_cast<int>(mode)));
-        return false;
+        return {false, ""};
     }
 
     if (!m_transport->checkStatus())
     {
-        return false;
+        return {false, "Transport not connected"};
     }
 
     clearSyncState();
@@ -422,8 +428,9 @@ bool AgentSyncProtocol::synchronizeMetadataOrGroups(Mode mode,
         m_logger(LOG_DEBUG, "Synchronization failed for metadata/groups mode");
     }
 
+    std::string failureReason = determineFailureReasonBasedOnSyncResult(m_syncState.lastSyncResult);
     clearSyncState();
-    return success;
+    return {success, failureReason};
 }
 
 bool AgentSyncProtocol::notifyDataClean(const std::vector<std::string>& indices,
