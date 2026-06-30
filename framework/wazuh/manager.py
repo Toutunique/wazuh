@@ -73,7 +73,12 @@ def _modulesd_status(running: bool) -> dict:
 
     return {
         'ready': ready,
-        'vulnerability-detector': vd,
+        'modules': {
+            'vulnerability-detector': vd,
+            'inventory-sync': {'available': True},
+            'content-manager': {'available': True},
+            'task-manager': {'available': True},
+        },
     }
 
 

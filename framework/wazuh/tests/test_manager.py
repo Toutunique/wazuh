@@ -103,10 +103,13 @@ def test_get_status_all_ready(mock_status, mock_engine_cls, mock_modulesd_cls):
     assert 'spaces' in data['wazuh-manager-analysisd']
     assert 'ioc' in data['wazuh-manager-analysisd']
     assert 'geo' in data['wazuh-manager-analysisd']
-    # modulesd embeds vulnerability-detector status
+    # modulesd embeds all manager-exclusive modules under 'modules' key
     assert data['wazuh-manager-modulesd']['ready'] is True
-    assert 'vulnerability-detector' in data['wazuh-manager-modulesd']
-    assert data['wazuh-manager-modulesd']['vulnerability-detector'] == VD_STATUS_READY
+    modules = data['wazuh-manager-modulesd']['modules']
+    assert modules['vulnerability-detector'] == VD_STATUS_READY
+    assert modules['inventory-sync'] == {'available': True}
+    assert modules['content-manager'] == {'available': True}
+    assert modules['task-manager'] == {'available': True}
     # plain daemon: ready iff running, no extra resources
     assert data['wazuh-manager-remoted'] == {'ready': True, 'running': True}
 
